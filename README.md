@@ -1,2 +1,2 @@
-# skeleton
-skeleton for bud new
+# archetype
+archetype for bud new
