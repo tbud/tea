@@ -1,0 +1,4 @@
+import _ "github.com/tbud/tea/tasks"
+
+
+UseTasks("tea")
