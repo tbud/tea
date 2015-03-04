@@ -94,18 +94,6 @@ module.static=github.com/revel/revel/modules/static
 
 
 
-################################################################################
-# Section: dev
-# This section is evaluated when running Revel in dev mode. Like so:
-#   `revel run path/to/myapp`
-[dev]
-# This sets `DevMode` variable to `true` which can be used in your code as
-#   `if revel.DevMode {...}`
-#   or in your templates with
-#   `{{.DevMode}}`
-mode.dev = true
-
-
 # Pretty print JSON/XML when calling RenderJson/RenderXml
 results.pretty = true
 

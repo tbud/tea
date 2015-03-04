@@ -6,6 +6,7 @@ import (
 	"go/build"
 	"math/rand"
 	"path/filepath"
+	"strings"
 	"time"
 )
 
@@ -16,7 +17,7 @@ type teaSeed struct {
 	srcRoot    string
 	importPath string
 
-	step func(t *teaSeed, input string) (*Step, error)
+	step func(t *teaSeed, input string) (*Prompt, error)
 }
 
 func (t *teaSeed) Name() string {
@@ -27,7 +28,7 @@ func (t *teaSeed) Description() string {
 	return "Create a go framework use reactjs."
 }
 
-func (t *teaSeed) Start(args ...string) (step *Step, err error) {
+func (t *teaSeed) Start(args ...string) (prompt *Prompt, err error) {
 	if err = t.checkGoPaths(); err != nil {
 		return
 	}
@@ -48,35 +49,43 @@ func (t *teaSeed) Start(args ...string) (step *Step, err error) {
 	}
 
 	t.step = stateStart
-	step = &Step{Message: msg}
-	return step, nil
+	prompt = &Prompt{Message: msg}
+	return prompt, nil
 }
 
-func (t *teaSeed) NextStep(input string) (*Step, error) {
+func (t *teaSeed) NextStep(input string) (*Prompt, error) {
 	if t.step != nil {
 		return t.step(t, input)
 	}
 	return nil, nil
 }
 
+func (t *teaSeed) HasNext() bool {
+	return t.step != nil
+}
+
 func (t *teaSeed) emptyAppNameMsg() string {
 	return fmt.Sprintf("Please input application import path, it will created in %s", t.srcRoot)
 }
 
-func stateStart(t *teaSeed, input string) (step *Step, err error) {
+func stateStart(t *teaSeed, input string) (prompt *Prompt, err error) {
 	if len(input) > 0 {
-		if err = t.parseImportPath(input); err != nil {
-			return
+		if strings.Contains(input, "/") {
+			if err = t.parseImportPath(input); err != nil {
+				return
+			}
+		} else {
+			t.AppName = strings.TrimSpace(input)
 		}
 	} else {
 		if len(t.AppName) == 0 {
-			step = &Step{Message: t.emptyAppNameMsg()}
-			return step, nil
+			prompt = &Prompt{Message: t.emptyAppNameMsg()}
+			return prompt, nil
 		}
 	}
 
 	var srcPackage *build.Package
-	srcPackage, err = build.Import("github.com/tbud/tea", "archetype", build.FindOnly)
+	srcPackage, err = build.Import("github.com/tbud/tea/archetype", "", build.FindOnly)
 	if err != nil {
 		return
 	}
@@ -87,8 +96,8 @@ func stateStart(t *teaSeed, input string) (step *Step, err error) {
 	}
 
 	t.step = nil
-	step = &Step{Message: fmt.Sprintf("OK, application %s is created.\n\nHave fun!", t.AppName)}
-	return nil, nil
+	prompt = &Prompt{Message: fmt.Sprintf("OK, application %s is created in %s.\n\nHave fun!", t.AppName, t.appPath)}
+	return prompt, nil
 }
 
 // lookup and set Go related variables
