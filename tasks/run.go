@@ -1,8 +1,10 @@
 package tasks
 
 import (
+	"crypto/tls"
 	"fmt"
 	. "github.com/tbud/bud/context"
+	"github.com/tbud/tea"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -14,16 +16,24 @@ import (
 type runTask struct {
 	ServerHost string
 	Port       int
-	Protocal   string
 
 	proxy *httputil.ReverseProxy
 }
 
 func (r *runTask) Execute() error {
 	go func() {
-		if err := http.ListenAndServe(r.ServerHost, r); err != nil {
-			Log.Error("%v", err)
-			os.Exit(1)
+		addr := fmt.Sprintf("%s:%d", tea.App.HttpAddr, tea.App.HttpPort)
+		Log.Info("Listening on %s", addr)
+
+		var err error
+		if tea.App.HttpSsl {
+			err = http.ListenAndServeTLS(addr, tea.App.HttpSslCert, tea.App.HttpSslKey, r)
+		} else {
+			err = http.ListenAndServe(addr, r)
+		}
+
+		if err != nil {
+			Log.Fatal("Failed to start reverse proxy: %v", err)
 		}
 	}()
 
@@ -35,6 +45,11 @@ func (r *runTask) Execute() error {
 }
 
 func (r *runTask) Validate() (err error) {
+	addr := tea.App.HttpAddr
+	if len(addr) == 0 {
+		addr = "localhost"
+	}
+
 	if r.Port == 0 {
 		r.Port, err = getFreePort()
 		if err != nil {
@@ -42,15 +57,27 @@ func (r *runTask) Validate() (err error) {
 		}
 	}
 
+	scheme := "http"
+	if tea.App.HttpSsl {
+		scheme = "https"
+	}
+
 	if len(r.ServerHost) == 0 || r.proxy == nil {
 		var serverUrl *url.URL
-		serverUrl, err = url.ParseRequestURI(fmt.Sprintf(r.Protocal+"://%s:%d", "localhost", r.Port))
+		serverUrl, err = url.ParseRequestURI(fmt.Sprintf(scheme+"://%s:%d", addr, r.Port))
 		if err != nil {
 			return
 		}
-		r.ServerHost = serverUrl.String()[len(r.Protocal+"://"):]
+
+		r.ServerHost = serverUrl.String()[len(scheme+"://"):]
 
 		r.proxy = httputil.NewSingleHostReverseProxy(serverUrl)
+
+		if tea.App.HttpSsl {
+			r.proxy.Transport = &http.Transport{
+				TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+			}
+		}
 	}
 
 	return nil
@@ -61,9 +88,7 @@ func (r *runTask) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func init() {
-	run := runTask{
-		Protocal: "http",
-	}
+	run := runTask{}
 
 	Task("run", &run, Group("tea"), Usage("Run tea framework application."))
 }
