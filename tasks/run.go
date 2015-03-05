@@ -90,7 +90,7 @@ func (r *runTask) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func init() {
 	run := runTask{}
 
-	Task("run", &run, Group("tea"), Usage("Run tea framework application."))
+	Task("run", &run, TEA_TASK_GROUP, Usage("Run tea framework application."))
 }
 
 func getFreePort() (port int, err error) {

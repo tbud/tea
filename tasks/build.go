@@ -2,6 +2,7 @@ package tasks
 
 import (
 	. "github.com/tbud/bud/context"
+	"github.com/tbud/tea"
 )
 
 type buildTask struct {
@@ -18,7 +19,9 @@ func (b *buildTask) Validate() error {
 }
 
 func init() {
-	build := &buildTask{}
+	build := &buildTask{
+		DestPath: TEA_TARGET_PATH,
+	}
 
-	Task("build", Group("tea"), build, Usage("Use to build tea framework application."))
+	Task("build", TEA_TASK_GROUP, build, Usage("Use to build tea framework application."))
 }
