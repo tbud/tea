@@ -11,36 +11,17 @@ import (
 )
 
 type App struct {
-	BinaryPath string
-	Port       int
-	cmd        AppCmd
-}
-
-func NewApp(binPath string) *App {
-	return &App{BinaryPath: binPath}
-}
-
-func (a *App) Cmd() AppCmd {
-	a.cmd = NewAppCmd(a.BinaryPath, a.Port)
-	return a.cmd
-}
-
-func (a *App) Kill() {
-	a.cmd.Kill()
-}
-
-type AppCmd struct {
 	*exec.Cmd
 }
 
-func NewAppCmd(binPath string, port int) AppCmd {
+func NewApp(binPath string, port int) *App {
 	cmd := exec.Command(binPath,
 		fmt.Sprintf("-port=%d", port))
 	cmd.Stdout, cmd.Stderr = os.Stdout, os.Stderr
-	return AppCmd{cmd}
+	return &App{cmd}
 }
 
-func (a *AppCmd) Start() error {
+func (a *App) Start() error {
 	listeningWriter := startupListeningWriter{os.Stdout, make(chan bool)}
 	a.Stdout = listeningWriter
 	Log.Trace("Exec app: %s, %v", a.Path, a.Args)
@@ -60,14 +41,14 @@ func (a *AppCmd) Start() error {
 	}
 }
 
-func (a *AppCmd) Run() {
+func (a *App) Run() {
 	Log.Trace("Exec app:", a.Path, a.Args)
 	if err := a.Cmd.Run(); err != nil {
 		Log.Error("Error running: %v", err)
 	}
 }
 
-func (a *AppCmd) Kill() {
+func (a *App) Kill() {
 	if a.Cmd != nil && (a.ProcessState == nil || !a.ProcessState.Exited()) {
 		Log.Trace("Killing server pid %d", a.Process.Pid)
 		err := a.Process.Kill()
@@ -77,7 +58,7 @@ func (a *AppCmd) Kill() {
 	}
 }
 
-func (a *AppCmd) waitChan() <-chan int {
+func (a *App) waitChan() <-chan int {
 	ch := make(chan int)
 	go func() {
 		a.Wait()

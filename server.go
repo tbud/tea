@@ -4,6 +4,7 @@ import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
 	// "io"
+	"html"
 	"net"
 	"net/http"
 	"strconv"
@@ -33,7 +34,7 @@ func handle(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleInternal(w http.ResponseWriter, r *http.Request, ws *websocket.Conn) {
-	println("handleInternal")
+	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
 	// var (
 	// 	req  = NewRequest(r)
 	// 	resp = NewResponse(w)

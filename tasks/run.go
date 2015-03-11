@@ -14,10 +14,12 @@ import (
 )
 
 type runTask struct {
+	commonCfg
 	ServerHost string
 	Port       int
 
 	proxy *httputil.ReverseProxy
+	app   *App
 }
 
 func (r *runTask) Execute() error {
@@ -45,6 +47,10 @@ func (r *runTask) Execute() error {
 }
 
 func (r *runTask) Validate() (err error) {
+	if err = r.commonCfg.Validate(); err != nil {
+		return err
+	}
+
 	addr := tea.App.HttpAddr
 	if len(addr) == 0 {
 		addr = "localhost"
@@ -84,13 +90,24 @@ func (r *runTask) Validate() (err error) {
 }
 
 func (r *runTask) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if req.URL.Path == "/favicon.ico" {
+		return
+	}
+
+	if r.app == nil {
+		r.app = NewApp(r.binPath, r.Port)
+		if err := r.app.Start(); err != nil {
+			Log.Error("%v", err)
+		}
+	}
+
 	r.proxy.ServeHTTP(rw, req)
 }
 
 func init() {
 	run := runTask{}
 
-	Task("run", &run, TEA_TASK_GROUP, Usage("Run tea framework application."))
+	Task("run", TEA_TASK_GROUP, &run, Tasks("tea.build"), Usage("Run tea framework application."))
 }
 
 func getFreePort() (port int, err error) {
