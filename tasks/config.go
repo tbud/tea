@@ -1,8 +1,8 @@
 package tasks
 
 import (
-	"fmt"
 	. "github.com/tbud/bud/context"
+	"github.com/tbud/tea"
 	. "github.com/tbud/x/config"
 	"os"
 	"path/filepath"
@@ -18,11 +18,9 @@ type commonCfg struct {
 	BaseDir     string // run base path, default is os.Getwd
 	BinName     string // compiled bin name
 	TargetDir   string // default task work dir, default is target
-	ConfigFile  string // config file path
 	CompileMode string // binary compile mode: debug, release. default is debug
 
 	// use inside
-	appConfig  Config // loaded config from app config file
 	targetPath string // target abs path
 	binPath    string // bin file abs path
 }
@@ -34,18 +32,9 @@ func (c *commonCfg) Validate() (err error) {
 		}
 	}
 
-	// validate config
-	configFile := filepath.Join(c.BaseDir, c.ConfigFile)
-	if _, err = os.Stat(configFile); os.IsNotExist(err) {
-		return fmt.Errorf("Config file not exist: %s, err: %v", configFile, err)
-	}
-	if c.appConfig, err = Load(configFile); err != nil {
-		return err
-	}
-
 	// validate bin name
 	if len(c.BinName) == 0 {
-		c.BinName = c.appConfig.StringDefault("app.name", "sample")
+		c.BinName = tea.App.Name
 	}
 
 	// validate compileMode
@@ -67,7 +56,6 @@ func (c *commonCfg) Validate() (err error) {
 func init() {
 	TaskConfig(TEA_TASK_GROUP_NAME, Config{
 		"targetDir":   "target",
-		"configFile":  "conf/app.conf",
 		"compileMode": "debug",
 	})
 }
