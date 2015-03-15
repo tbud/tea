@@ -1,11 +1,7 @@
-package router
-
-import (
-	"regexp"
-)
+package context
 
 type Router struct {
-	Routes []*Route
+	Routes []*Router
 	path   string
 }
 

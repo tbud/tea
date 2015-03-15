@@ -1,8 +1,19 @@
-package router
+package context
 
-type Handle func() error
+import (
+	"net/http"
+)
+
+type Handle func(http.ResponseWriter, *http.Request, Params)
 
 type nodeType uint8
+
+type Param struct {
+	Key   string
+	Value string
+}
+
+type Params []Param
 
 const (
 	static_type nodeType = iota

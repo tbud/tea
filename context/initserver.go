@@ -1,8 +1,10 @@
-package tea
+package context
 
 import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
+	"github.com/tbud/x/config"
+	"github.com/tbud/x/log"
 	// "io"
 	"html"
 	"net"
@@ -12,6 +14,45 @@ import (
 	"time"
 )
 
+type AppConfigStruct struct {
+	Name   string
+	Secret string
+
+	HttpPort    int
+	HttpAddr    string
+	HttpSsl     bool
+	HttpSslCert string
+	HttpSslKey  string
+
+	CookiePrefix   string
+	CookieHttpOnly bool
+	CookieSecure   bool
+}
+
+var App = &AppConfigStruct{
+	HttpPort: 9000,
+	HttpAddr: "127.0.0.1",
+	HttpSsl:  false,
+}
+
+var Log *log.Logger
+
+func init() {
+	conf, err := config.Load("conf/app.conf")
+	if err != nil {
+		panic(err)
+	}
+
+	Log, err = log.New(conf.SubConfig("log"))
+	if err != nil {
+		panic(err)
+	}
+
+	if err = conf.SubConfig("app").SetStruct(App); err != nil {
+		Log.Error("%v", err)
+	}
+}
+
 var (
 	// MainRouter         *Router
 	// MainTemplateLoader *TemplateLoader
@@ -19,8 +60,6 @@ var (
 	Server *http.Server
 )
 
-// This method handles all requests.  It dispatches to handleInternal after
-// handling / adapting websocket connections.
 func handle(w http.ResponseWriter, r *http.Request) {
 	upgrade := r.Header.Get("Upgrade")
 	if upgrade == "websocket" || upgrade == "Websocket" {
