@@ -5,14 +5,19 @@ import (
 	"testing"
 )
 
-var routerLines = `
-
-`
+var routerLines = struct {
+	num  int
+	line string
+	err  error
+}{
+	{1, "Get / index.html", nil},
+	{3, "#Get / index.html", nil},
+}
 
 func TestAddRouter(t *testing.T) {
 	pRouter := &Router{}
-	for num, line := range strings.Split(routerLines, "\n") {
-		if err = pRouter.AddRoute(line, num); err != nil {
+	for _, routerLine := range routerLines {
+		if err = pRouter.AddRoute(routerLine.line, num); err != nil {
 
 		}
 	}
