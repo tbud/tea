@@ -3,10 +3,10 @@ package context
 import (
 	"code.google.com/p/go.net/websocket"
 	"fmt"
-	"github.com/tbud/x/config"
-	"github.com/tbud/x/log"
+	// "github.com/tbud/x/config"
+	// "github.com/tbud/x/log"
 	// "io"
-	"html"
+	// "html"
 	"net"
 	"net/http"
 	"strconv"

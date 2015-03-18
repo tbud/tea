@@ -18,15 +18,15 @@ func newContext(rw http.ResponseWriter, req *http.Request, ws *websocket.Conn) *
 	return &Context{
 		Request:     req,
 		Response:    rw,
-		websocket:   ws,
-		ContextType: ResolveContentType(req),
+		Websocket:   ws,
+		ContentType: ResolveContentType(req),
 		Format:      ResolveFormat(req),
 	}
 }
 
 func ResolveContentType(req *http.Request) string {
 	contentType := req.Header.Get("Content-Type")
-	if len(contextType) {
+	if len(contentType) == 0 {
 		return "text/html"
 	}
 	return strings.ToLower(strings.TrimSpace(strings.Split(contentType, ";")[0]))

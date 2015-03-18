@@ -17,7 +17,7 @@ var routerLines = struct {
 func TestAddRouter(t *testing.T) {
 	pRouter := &Router{}
 	for _, routerLine := range routerLines {
-		if err = pRouter.AddRoute(routerLine.line, num); err != nil {
+		if err = pRouter.AddRoute(routerLine.line, routerLine.num); err != nil {
 
 		}
 	}
