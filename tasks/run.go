@@ -1,6 +1,7 @@
 package tasks
 
 import (
+	"bufio"
 	"crypto/tls"
 	"fmt"
 	. "github.com/tbud/bud/context"
@@ -10,7 +11,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"os/signal"
 )
 
 type runTask struct {
@@ -39,9 +39,10 @@ func (r *runTask) Execute() error {
 		}
 	}()
 
-	ch := make(chan os.Signal)
-	signal.Notify(ch, os.Interrupt, os.Kill)
-	<-ch
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("\x1B[32mInput Ctrl+D to stop running.\x1B[39m")
+	for scanner.Scan() {
+	}
 
 	return nil
 }
