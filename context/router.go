@@ -12,12 +12,14 @@ type Router struct {
 
 func LoadRouter(file string) (pRouter *Router, err error) {
 	if !filepath.IsAbs(file) {
-		file = filepath.Abs(file)
+		if file, err = filepath.Abs(file); err != nil {
+			return nil, err
+		}
 	}
 
 	pRouter = &Router{}
 
-	var fineBuf []byte
+	var fileBuf []byte
 	if fileBuf, err = ioutil.ReadFile(file); err != nil {
 		for num, line := range strings.Split(string(fileBuf), "\n") {
 			line = strings.TrimSpace(line)
@@ -37,5 +39,5 @@ func LoadRouter(file string) (pRouter *Router, err error) {
 }
 
 func (r *Router) AddRoute(line string, num int) (err error) {
-
+	return nil
 }

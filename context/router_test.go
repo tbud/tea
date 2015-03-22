@@ -1,11 +1,11 @@
 package context
 
 import (
-	"strings"
+	// "strings"
 	"testing"
 )
 
-var routerLines = struct {
+var routerLines = []struct {
 	num  int
 	line string
 	err  error
@@ -17,7 +17,7 @@ var routerLines = struct {
 func TestAddRouter(t *testing.T) {
 	pRouter := &Router{}
 	for _, routerLine := range routerLines {
-		if err = pRouter.AddRoute(routerLine.line, routerLine.num); err != nil {
+		if err := pRouter.AddRoute(routerLine.line, routerLine.num); err != nil {
 
 		}
 	}
