@@ -3,6 +3,7 @@ package context
 import (
 	"io/ioutil"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
@@ -40,4 +41,19 @@ func LoadRouter(file string) (pRouter *Router, err error) {
 
 func (r *Router) AddRoute(line string, num int) (err error) {
 	return nil
+}
+
+var routePattern *regexp.Regexp = regexp.MustCompile("(?i)^(GET|POST|PUT|DELETE|PATCH|OPTIONS|HEAD|WS)[ \t]+([^ \t]+)[ \t]+(.+)$")
+
+func parseRouteLine(line string) (method, path, action string, found bool) {
+	var matches []string = routePattern.FindStringSubmatch(line)
+	if matches == nil {
+		return
+	}
+
+	return matches[1], matches[2], strings.TrimSpace(matches[3]), true
+}
+
+func parseImportLine(line string) {
+
 }
