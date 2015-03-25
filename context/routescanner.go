@@ -3,32 +3,11 @@ package context
 import (
 	"bytes"
 	"fmt"
-	. "github.com/tbud/x/builtin"
 	"github.com/tbud/x/container/set"
+	"io/ioutil"
+	"path/filepath"
+	"regexp"
 	"strings"
-)
-
-type router struct {
-	httpMethod string
-	path       string
-	prefix     string
-	structName string
-	action     string
-	params     []param
-}
-
-type param struct {
-	name         string
-	pType        paramType
-	defaultValue interface{}
-}
-
-type paramType uint8
-
-const (
-	default_type paramType = iota
-	fix_value_type
-	default_value_type
 )
 
 const (
@@ -44,42 +23,6 @@ const (
 	scanError            // hit an error, scanner.err.
 )
 
-type keywordScanner struct {
-	maxWordLen   int
-	keywords     []string
-	keywordsType []int
-}
-
-var keywords = keywordScanner{
-	0,
-	[]string{"import", "include"},
-	[]int{bufInImport, bufInInclude},
-}
-
-func (k *keywordScanner) init() {
-	for _, keyword := range k.keywords {
-		wordLen := len(keyword)
-		if wordLen > k.maxWordLen {
-			k.maxWordLen = wordLen
-		}
-	}
-}
-
-func (k *keywordScanner) checkKeyword(r *routeScanner, buf []byte) {
-	if len(buf) <= k.maxWordLen {
-		value := string(buf)
-		for i, keyword := range k.keywords {
-			if value == keyword {
-				r.bufType = k.keywordsType[i]
-				return
-			}
-		}
-	}
-
-	r.bufType = bufInRoute
-	return
-}
-
 type routeScanner struct {
 	step func(*routeScanner, int) int
 
@@ -91,9 +34,36 @@ type routeScanner struct {
 	bufType    int    //buf type
 	bracketNum int    // save bracket num
 
-	imports  map[string]set.StringSet
-	includes []string
+	imports  map[string]*set.StringSet
+	includes map[string]string
 	routes   []string
+}
+
+func (r *routeScanner) open(fileName string) (err error) {
+	r.init()
+
+	if !filepath.IsAbs(fileName) {
+		return fmt.Errorf("file '%s' is not absolute path", fileName)
+	}
+
+	r.data, err = ioutil.ReadFile(fileName)
+	if err != nil {
+		return err
+	}
+
+	for _, c := range r.data {
+		switch r.step(r, int(c)) {
+		case scanError:
+			return r.err
+		case scanAppendBuf:
+			r.parseBuf = append(r.parseBuf, c)
+		}
+	}
+
+	if r.step(r, '\n') == scanError {
+		return r.err
+	}
+	return nil
 }
 
 func (r *routeScanner) init() {
@@ -153,7 +123,9 @@ func stateEnd(r *routeScanner, c int) int {
 	case bufInImport:
 		parseImport(r)
 	case bufInInclude:
-		parseInclude(r)
+		if parseInclude(r, c) == scanError {
+			return scanError
+		}
 	case bufInRoute:
 		parseRoute(r)
 	}
@@ -162,39 +134,6 @@ func stateEnd(r *routeScanner, c int) int {
 	r.bufType = bufInUnknown
 	r.step = stateBegin
 	return stateBegin(r, c)
-}
-
-func parseImport(r *routeScanner) {
-	var importList []string
-
-	if bytes.Contains(r.parseBuf, []byte("(")) {
-
-		buf := bytes.TrimPrefix(bytes.TrimSpace(r.parseBuf), []byte("import"))
-		buf = bytes.TrimFunc(buf, func(r rune) bool {
-			return r == '(' || r == ')'
-		})
-		importList = strings.Split(string(buf), "\n")
-	} else {
-		buf := bytes.TrimPrefix(bytes.TrimSpace(r.parseBuf), []byte("import"))
-		importList = []string{string(buf)}
-	}
-
-	for _, importLine := range importList {
-		importLine = strings.TrimSpace(importLine)
-		if strings.ContainsAny(importLine, " \t") {
-
-		} else {
-
-		}
-	}
-}
-
-func parseInclude(r *routeScanner) {
-
-}
-
-func parseRoute(r *routeScanner) {
-
 }
 
 func stateComment(r *routeScanner, c int) int {
@@ -219,13 +158,113 @@ func isSpace(c rune) bool {
 	return c == ' ' || c == '\t' || c == '\r' || c == '\n'
 }
 
-func includeRoute(rootPath string, importAppPath string) (routers []router, err error) {
-	defer Catch(func(ierr interface{}) {
-		if errr, ok := ierr.(error); ok {
-			err = errr
-		}
-		Log.Error("Catch error: %v", ierr)
-	})
+/*********** parse buf content *************/
+var importRegex = regexp.MustCompile("([^ \t]+)[ \t]+(.*)")
 
-	return nil, nil
+func getBlockList(r *routeScanner, prefix string) (list []string) {
+	list = []string{}
+
+	if bytes.Contains(r.parseBuf, []byte("(")) {
+		buf := bytes.TrimPrefix(bytes.TrimSpace(r.parseBuf), []byte(prefix))
+		buf = bytes.TrimFunc(buf, func(r rune) bool {
+			return r == '(' || r == ')'
+		})
+		list = strings.Split(string(buf), "\n")
+	} else {
+		buf := bytes.TrimPrefix(bytes.TrimSpace(r.parseBuf), []byte(prefix))
+		list = []string{string(buf)}
+	}
+
+	return
+}
+
+func parseImport(r *routeScanner) {
+	for _, importLine := range getBlockList(r, "import") {
+		importLine = strings.TrimSpace(importLine)
+		var prefix, importPath string
+
+		if strings.ContainsAny(importLine, " \t") {
+			matches := importRegex.FindStringSubmatch(importLine)
+			if matches == nil {
+				continue
+			}
+			prefix, importPath = matches[1], matches[2]
+			importPath = strings.Trim(strings.TrimSpace(importPath), "\"")
+		} else {
+			importPath = strings.Trim(importLine, "\"")
+			prefix = filepath.Base(importPath)
+		}
+
+		var (
+			m     *set.StringSet
+			found bool
+		)
+
+		if m, found = r.imports[prefix]; !found {
+			m = &set.StringSet{}
+			r.imports[prefix] = m
+		}
+		m.Add(importPath)
+	}
+}
+
+func parseInclude(r *routeScanner, c int) int {
+	for _, includeLine := range getBlockList(r, "include") {
+		includeLine = strings.TrimSpace(includeLine)
+
+		if !strings.ContainsAny(includeLine, " \t") {
+			return r.error(c, "parse include error: "+includeLine)
+		}
+
+		matches := importRegex.FindStringSubmatch(includeLine)
+		if matches == nil {
+			continue
+		}
+
+		r.includes[matches[1]] = matches[2]
+	}
+
+	return scanContinue
+}
+
+func parseRoute(r *routeScanner) {
+	routePath := string(bytes.TrimSpace(r.parseBuf))
+	r.routes = append(r.routes, routePath)
+}
+
+/************** keyword scanner *****************/
+type keywordScanner struct {
+	maxWordLen   int
+	keywords     []string
+	keywordsType []int
+}
+
+var keywords = keywordScanner{
+	0,
+	[]string{"import", "include"},
+	[]int{bufInImport, bufInInclude},
+}
+
+func (k *keywordScanner) init() {
+	for _, keyword := range k.keywords {
+		wordLen := len(keyword)
+		if wordLen > k.maxWordLen {
+			k.maxWordLen = wordLen
+		}
+	}
+}
+
+func (k *keywordScanner) checkKeyword(r *routeScanner, buf []byte) {
+	if len(buf) <= k.maxWordLen {
+		value := string(buf)
+		for i, keyword := range k.keywords {
+			if value == keyword {
+				r.bufType = k.keywordsType[i]
+				return
+			}
+		}
+	}
+
+	r.bufType = bufInRoute
+	return
 }
