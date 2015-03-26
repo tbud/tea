@@ -3,6 +3,7 @@ package context
 import (
 	"bytes"
 	"fmt"
+	// "github.com/tbud/x/container/linkedmap"
 	"github.com/tbud/x/container/set"
 	"io/ioutil"
 	"path/filepath"
@@ -24,22 +25,51 @@ const (
 )
 
 type routeScanner struct {
-	step func(*routeScanner, int) int
+	rootPath string // save root path
+	step     func(*routeScanner, int) int
 
 	// Error that happened, if any.
 	err error
 
 	data       []byte // store data load from file
 	parseBuf   []byte // save parsed key or value
-	bufType    int    //buf type
+	bufType    int    // buf type
 	bracketNum int    // save bracket num
 
-	imports  map[string]*set.StringSet
-	includes map[string]string
-	routes   []string
+	imports       map[string]*set.StringSet
+	importStructs map[string][]importStruct
+	routers       []router
 }
 
-func (r *routeScanner) open(fileName string) (err error) {
+func includeRoute(rootPath string, importAppPath string) (routers []router, err error) {
+	defer Catch(func(ierr interface{}) {
+		if errr, ok := ierr.(error); ok {
+			err = errr
+		}
+		Log.Error("Catch error: %v", ierr)
+	})
+
+	var pkg *build.Package
+	if pkg, err = build.ImportDir(importAppPath, build.FindOnly); err != nil {
+		Log.Error("Import dir error: %v", err)
+		return
+	}
+
+	fileName := filepath.Join(pkg.Dir, route_file_path)
+	scanner := &routeScanner{}
+	// add default import and builtin import
+	scanner.addImport(".", importAppPath)
+	scanner.addImport(".", "github.com/tbud/tea/modules/builtin")
+
+	if err = scanner.open(rootPath, fileName); err != nil {
+		Log.Error("Scanner route file '%s' error: %v", fileName, err)
+		return
+	}
+
+	return scanner.routers, nil
+}
+
+func (r *routeScanner) open(rootPath, fileName string) (err error) {
 	r.init()
 
 	if !filepath.IsAbs(fileName) {
@@ -70,6 +100,29 @@ func (r *routeScanner) init() {
 	r.step = stateBegin
 	r.err = nil
 	r.bufType = bufInUnknown
+}
+
+func (r *routeScanner) addImport(prefix, importPath string) {
+	var (
+		m     *set.StringSet
+		found bool
+	)
+
+	if m, found = r.imports[prefix]; !found {
+		m = &set.StringSet{}
+		r.imports[prefix] = m
+	}
+
+	if !m.Has(importPath) {
+		if iss, err := parseDirController(importPath); err != nil {
+			r.step = stateError
+			r.err = err
+			return
+		} else {
+			r.importStructs = append(r.importStructs, iss...)
+		}
+		m.Add(importPath)
+	}
 }
 
 func stateBegin(r *routeScanner, c int) int {
@@ -195,16 +248,7 @@ func parseImport(r *routeScanner) {
 			prefix = filepath.Base(importPath)
 		}
 
-		var (
-			m     *set.StringSet
-			found bool
-		)
-
-		if m, found = r.imports[prefix]; !found {
-			m = &set.StringSet{}
-			r.imports[prefix] = m
-		}
-		m.Add(importPath)
+		r.addImport(prefix, importPath)
 	}
 }
 

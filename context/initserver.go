@@ -40,12 +40,12 @@ var Log *log.Logger
 func init() {
 	conf, err := config.Load("conf/app.conf")
 	if err != nil {
-		panic(err)
+		Log.Error("%v", err)
 	}
 
 	Log, err = log.New(conf.SubConfig("log"))
 	if err != nil {
-		panic(err)
+		Log.Error("%v", err)
 	}
 
 	if err = conf.SubConfig("app").SetStruct(App); err != nil {
