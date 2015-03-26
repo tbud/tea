@@ -2,13 +2,11 @@ package context
 
 import (
 	. "github.com/tbud/tea/context"
-	. "github.com/tbud/x/builtin"
 	// "io/ioutil"
-	"github.com/tbud/x/container/set"
 	"go/ast"
 	"go/build"
 	"go/parser"
-	"go/scanner"
+	// "go/scanner"
 	"go/token"
 	"os"
 	"path/filepath"
@@ -62,17 +60,6 @@ func parseRouteScanner(r *routeScanner, rootPath string) (routers []router, err 
 		return
 	}
 
-	if len(r.includes) > 0 {
-		for rootPath, importAppPath := range r.includes {
-			if r, errr := includeRoute(rootPath, importAppPath); errr != nil {
-				Log.Error("include router (%s, %s) error: %v", rootPath, importAppPath, errr)
-				return
-			} else {
-				routers = append(routers, r...)
-			}
-		}
-	}
-
 	return routers, nil
 }
 
@@ -83,8 +70,10 @@ func parseRouteScannerRouter(r *routeScanner) (routers []router, err error) {
 
 func parseDirController(rootImportPath string) (importStructs []importStruct, err error) {
 	var pkg *build.Package
-	if pkg, err = build.ImportDir(rootImportPath, build.FindOnly); err != nil {
-		return err
+	rootImportPath = filepath.Join(rootImportPath, tea_controller_path)
+	if pkg, err = build.Import(rootImportPath, "", build.FindOnly); err != nil {
+		Log.Error("%v", err)
+		return nil, err
 	}
 
 	root := pkg.Dir
@@ -103,7 +92,7 @@ func parseDirController(rootImportPath string) (importStructs []importStruct, er
 		var pkgs map[string]*ast.Package
 		fset := token.NewFileSet()
 		pkgs, err = parser.ParseDir(fset, path, func(f os.FileInfo) bool {
-			return !f.IsDir() && !strings.HasPrefix(f.Name(), ".") && filepath.Ext(f.name) == ".go"
+			return !f.IsDir() && !strings.HasPrefix(f.Name(), ".") && filepath.Ext(f.Name()) == ".go"
 		}, 0)
 
 		if err != nil {
@@ -129,20 +118,22 @@ func parseDirController(rootImportPath string) (importStructs []importStruct, er
 		}
 
 		importStructs = append(importStructs, processPackage(fset, pkgImportPath, path, pkg)...)
+		return nil
 	})
 
 	return
 }
 
 func processPackage(fset *token.FileSet, pkgImportPath, pkgPath string, pkg *ast.Package) []importStruct {
-	fmt.Printf("%#v\n", pkg)
-	// for _, file := range pkg.Files {
-	// 	imports := map[string]string{}
+	for _, file := range pkg.Files {
+		// imports := map[string]string{}
 
-	// 	for _, decl := range file.Decls {
+		fmt.Printf("%#v", file)
 
-	// 	}
-	// }
+		// for _, decl := range file.Decls {
+
+		// }
+	}
 	return nil
 }
 
