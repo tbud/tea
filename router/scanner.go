@@ -39,9 +39,9 @@ type routeScanner struct {
 	bufType    int    // buf type
 	bracketNum int    // save bracket num
 
-	imports       map[string]*set.StringSet
-	importStructs map[string][]importStruct
-	routers       []router
+	imports     map[string]*set.StringSet
+	controllers map[string][]controller
+	routers     []router
 }
 
 func includeRoute(rootPath string, importAppPath string) (routers []router, err error) {
@@ -59,9 +59,9 @@ func includeRoute(rootPath string, importAppPath string) (routers []router, err 
 	}
 
 	scanner := &routeScanner{
-		rootPath:      rootPath,
-		imports:       map[string]*set.StringSet{},
-		importStructs: map[string][]importStruct{}}
+		rootPath:    rootPath,
+		imports:     map[string]*set.StringSet{},
+		controllers: map[string][]controller{}}
 	// add default import and builtin import
 	if err = scanner.addImport(".", importAppPath); err != nil {
 		return nil, err
@@ -127,7 +127,7 @@ func (r *routeScanner) addImport(prefix, importPath string) error {
 		if iss, err := parseDirController(importPath); err != nil {
 			return err
 		} else {
-			r.importStructs[prefix] = append(r.importStructs[prefix], iss...)
+			r.controllers[prefix] = append(r.controllers[prefix], iss...)
 		}
 		m.Add(importPath)
 	}
