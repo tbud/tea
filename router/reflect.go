@@ -181,8 +181,9 @@ func appendAction(fset *token.FileSet, decl ast.Decl, pkgImportPath, pkgName str
 
 	for _, field := range funcDecl.Type.Params.List {
 		for _, name := range field.Names {
-			var importPath string
+			// var importPath string
 			// typeExpr :=
+			m.params = append(m.params, param{name: name.Name})
 		}
 	}
 
