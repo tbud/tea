@@ -10,7 +10,6 @@ import (
 	"go/token"
 	"os"
 	"path/filepath"
-	"reflect"
 	// "regexp"
 	"fmt"
 	"strings"
@@ -26,12 +25,12 @@ type router struct {
 
 type method struct {
 	name   string
-	params []param
+	params []*param
 }
 
 type param struct {
 	name         string
-	rType        reflect.Type
+	typeExpr     TypeExpr
 	pType        paramType
 	defaultValue interface{}
 }
@@ -48,7 +47,7 @@ type controller struct {
 	structName  string
 	importPath  string
 	packageName string
-	methods     []method
+	methods     []*method
 }
 
 const (
@@ -182,12 +181,21 @@ func appendAction(fset *token.FileSet, decl ast.Decl, pkgImportPath, pkgName str
 	for _, field := range funcDecl.Type.Params.List {
 		for _, name := range field.Names {
 			// var importPath string
-			// typeExpr :=
-			m.params = append(m.params, param{name: name.Name})
+			typeExpr := newTypeExpr(pkgName, field.Type)
+			if !typeExpr.valid {
+				return // we didn't understand one of the args. Ignore this action.
+			}
+
+			m.params = append(m.params, &param{name: name.Name, typeExpr: typeExpr})
 		}
 	}
 
-	fmt.Printf("%#v\n", funcDecl.Type)
+	fmt.Printf("%#v\n", m)
+
+	ast.Inspect(funcDecl.Body, func(node ast.Node) bool {
+
+		return true
+	})
 }
 
 type TypeExpr struct {
@@ -261,7 +269,8 @@ func getStructTypeDecl(decl ast.Decl, fset *token.FileSet) (spec *ast.TypeSpec, 
 	}
 
 	if len(genDecl.Specs) == 0 {
-		Log.Warn("Surprising: %s:%d Decl contains no specifications", fset.Position(decl.Pos()).Filename, fset.Position(decl.Pos()).Line)
+		pos := fset.Position(decl.Pos())
+		Log.Warn("Surprising: %s:%d Decl contains no specifications", pos.Filename, pos.Line)
 		return
 	}
 
