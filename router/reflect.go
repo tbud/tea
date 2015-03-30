@@ -193,7 +193,10 @@ func appendAction(fset *token.FileSet, decl ast.Decl, pkgImportPath, pkgName str
 	fmt.Printf("%#v\n", m)
 
 	ast.Inspect(funcDecl.Body, func(node ast.Node) bool {
-
+		callExpr, ok := node.(*ast.CallExpr)
+		if !ok {
+			return true
+		}
 		return true
 	})
 }
