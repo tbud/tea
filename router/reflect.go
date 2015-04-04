@@ -197,6 +197,8 @@ func appendAction(fset *token.FileSet, decl ast.Decl, pkgImportPath, pkgName str
 		if !ok {
 			return true
 		}
+
+		selExpr, ok := callExpr.r
 		return true
 	})
 }
