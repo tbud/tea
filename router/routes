@@ -6,6 +6,15 @@
 GET     /                                       App.Index
 
 
+GET     /group                                  Group.List()
+#POST	/group 									Group.Create()
+PUT     /group/:id 								Group.Update(id)
+DELETE  /group/:id                              Group.Delete(id)
+
+
+# param from url argument
+Post     /param									Param.Get(name, age)
+
 
 # Map static resources from the /app/public folder to the /public path
 GET     /public/*filepath                       Assets.At("public", filepath)
