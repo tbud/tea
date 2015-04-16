@@ -1,18 +1,16 @@
-package context
+package router
 
 import (
-	. "github.com/tbud/tea/context"
-	// "io/ioutil"
+	"fmt"
 	"go/ast"
 	"go/build"
 	"go/parser"
-	// "go/scanner"
 	"go/token"
 	"os"
 	"path/filepath"
-	// "regexp"
-	"fmt"
 	"strings"
+
+	. "github.com/tbud/tea/context"
 )
 
 type router struct {
@@ -23,24 +21,33 @@ type router struct {
 	methods    []method
 }
 
+type routerLine struct {
+	httpMethod string
+	path       string
+	structName string
+	methodName string
+	params     []*param
+}
+
 type method struct {
 	name   string
 	params []*param
 }
 
 type param struct {
+	pType        paramType
 	name         string
 	typeExpr     TypeExpr
-	pType        paramType
 	defaultValue interface{}
 }
 
 type paramType uint8
 
 const (
-	default_type paramType = iota
-	fix_value_type
-	default_value_type
+	default_type       paramType = iota // param with a name
+	default_value_type                  // param with a name and default value
+	fixed_value_type                    // param that is a fixed value
+
 )
 
 type controller struct {
@@ -198,7 +205,7 @@ func appendAction(fset *token.FileSet, decl ast.Decl, pkgImportPath, pkgName str
 			return true
 		}
 
-		selExpr, ok := callExpr.r
+		callExpr.Pos()
 		return true
 	})
 }
