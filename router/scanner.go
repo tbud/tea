@@ -3,15 +3,15 @@ package context
 import (
 	"bytes"
 	"fmt"
-	// "github.com/tbud/x/container/linkedmap"
-	. "github.com/tbud/tea/context"
-	. "github.com/tbud/x/builtin"
-	"github.com/tbud/x/container/set"
 	"go/build"
 	"io/ioutil"
 	"path/filepath"
 	"regexp"
 	"strings"
+
+	. "github.com/tbud/tea/context"
+	. "github.com/tbud/x/builtin"
+	"github.com/tbud/x/container/set"
 )
 
 const (

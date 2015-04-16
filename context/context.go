@@ -15,6 +15,7 @@ type Context struct {
 }
 
 func newContext(rw http.ResponseWriter, req *http.Request, ws *websocket.Conn) *Context {
+
 	return &Context{
 		Request:     req,
 		Response:    rw,
