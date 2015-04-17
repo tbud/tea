@@ -34,21 +34,22 @@ type method struct {
 	params []*param
 }
 
-type param struct {
-	pType        paramType
-	name         string
-	typeExpr     TypeExpr
-	defaultValue interface{}
-}
-
 type paramType uint8
 
 const (
-	default_type       paramType = iota // param with a name
-	default_value_type                  // param with a name and default value
-	fixed_value_type                    // param that is a fixed value
-
+	path_param_type               paramType = iota // named param in path
+	path_value_param_type                          // named param in path with default value
+	fixed_value_type                               // param that is a fixed value
+	query_string_param_type                        // named param in query string
+	query_string_value_param_type                  // named param in query string with default value
 )
+
+type param struct {
+	pType        paramType
+	name         string
+	defaultValue string
+	typeExpr     TypeExpr
+}
 
 type controller struct {
 	structName  string
