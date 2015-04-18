@@ -27,6 +27,7 @@ type routerLine struct {
 	structName string
 	methodName string
 	params     []*param
+	pathParams []*param
 }
 
 type method struct {

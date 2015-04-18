@@ -30,6 +30,9 @@ func parseRouterLine(line string) (r *routerLine, err error) {
 	}
 
 	fmt.Printf("%v\n", r)
+	for _, p := range r.pathParams {
+		fmt.Printf("%v\n", p)
+	}
 	for _, p := range r.params {
 		fmt.Printf("%v\n", p)
 	}
@@ -55,21 +58,105 @@ func parseRouterPath(pathLine string, r *routerLine) error {
 			getParamName = true
 		case '/':
 			if getParamName {
-				r.params = append(r.params, &param{pType: path_param_type, name: string(nameBuf)})
+				r.pathParams = append(r.pathParams, &param{pType: path_param_type, name: string(nameBuf)})
 				nameBuf = nameBuf[:0]
 			}
 		}
 	}
 
 	if getParamName && len(nameBuf) > 0 {
-		r.params = append(r.params, &param{pType: path_param_type, name: string(nameBuf)})
+		r.pathParams = append(r.pathParams, &param{pType: path_param_type, name: string(nameBuf)})
 	}
 
 	return nil
 }
 
-func parseRouterAction(actionLine string, r *routerLine) error {
+func parseRouterAction(actionLine string, r *routerLine) (err error) {
 	actionLine = strings.TrimSpace(actionLine)
+
+	var (
+		bInQuote     = false
+		bInStringEsc = false
+		buf          []rune
+	)
+
+	for _, c := range actionLine {
+		switch c {
+		case '"':
+			if !bInStringEsc {
+				bInQuote = !bInQuote
+			} else {
+				bInStringEsc = false
+			}
+			buf = append(buf, c)
+			continue
+		case '\\':
+			bInStringEsc = !bInStringEsc
+			buf = append(buf, c)
+			continue
+		case 'b', 'f', 'n', 'r', 't', '/', 'u':
+			if bInStringEsc {
+				buf = append(buf, c)
+				bInStringEsc = false
+				continue
+			}
+		}
+
+		if bInQuote {
+			buf = append(buf, c)
+		} else {
+			switch c {
+			case '.':
+				if len(r.structName) == 0 {
+					r.structName = string(buf)
+					buf = buf[:0]
+				} else {
+					return fmt.Errorf("find second '.' in route action: %s", actionLine)
+				}
+			case '(':
+				if len(r.methodName) == 0 {
+					r.methodName = string(buf)
+					buf = buf[:0]
+				} else {
+					return fmt.Errorf("find second '(' in route action", actionLine)
+				}
+			case ',', ')':
+				paramLine := string(buf)
+				buf = buf[:0]
+				if err = parseRouterActionParam(paramLine, r); err != nil {
+					return err
+				}
+			default:
+				buf = append(buf, c)
+			}
+		}
+	}
+
+	if len(buf) > 0 {
+		return fmt.Errorf("Endless parse: '%s' in actionline: %s ", string(buf), actionLine)
+	}
+
+	return nil
+}
+
+func parseRouterActionParam(paramLine string, r *routerLine) error {
+	paramLine = strings.TrimSpace(paramLine)
+	quoteIndex := strings.Index(paramLine, "\"")
+	equalIndex := strings.Index(paramLine, "=")
+	if quoteIndex > 0 {
+		if equalIndex > 0 {
+
+		}
+	}
+	return nil
+}
+
+func (rl *routerLine) findPathParamByName(name string) *param {
+	for _, p := range rl.pathParams {
+		if p.name == name {
+			return p
+		}
+	}
 
 	return nil
 }
