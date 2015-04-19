@@ -143,10 +143,21 @@ func parseRouterActionParam(paramLine string, r *routerLine) error {
 	paramLine = strings.TrimSpace(paramLine)
 	quoteIndex := strings.Index(paramLine, "\"")
 	equalIndex := strings.Index(paramLine, "=")
-	if quoteIndex > 0 {
-		if equalIndex > 0 {
+
+	if equalIndex > 0 {
+		if quoteIndex > 0 {
+			if quoteIndex > equalIndex {
+				paramName := strings.TrimSpace(paramLine[0:equalIndex])
+				paramValue := strings.TrimSpace(paramLine[equalIndex+1:])
+
+			} else {
+
+			}
+		} else {
 
 		}
+	} else {
+
 	}
 	return nil
 }

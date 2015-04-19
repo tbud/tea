@@ -114,3 +114,78 @@ func TestParseRouteLine(t *testing.T) {
 		}
 	}
 }
+
+var testParamLines = []struct {
+	paramLine string
+	param     *param
+	err       error
+}{
+	{
+		paramLine: `ab`,
+		param: &param{
+			pType: path_param_type,
+			name:  "ab",
+		},
+		err: nil,
+	},
+	{
+		paramLine: `ab=1`,
+		param: &param{
+			pType:        path_value_param_type,
+			name:         "ab",
+			defaultValue: "1",
+		},
+		err: nil,
+	},
+	{
+		paramLine: `cd`,
+		param: &param{
+			pType: query_string_param_type,
+			name:  "cd",
+		},
+		err: nil,
+	},
+	{
+		paramLine: `cd="abc"`,
+		param: &param{
+			pType:        query_string_value_param_type,
+			name:         "cd",
+			defaultValue: "true",
+		},
+		err: nil,
+	},
+	{
+		paramLine: `false`,
+		param: &param{
+			pType:        fixed_value_type,
+			defaultValue: "false",
+		},
+		err: nil,
+	},
+	{
+		paramLine: `"cd"`,
+		param: &param{
+			pType:        fixed_value_type,
+			defaultValue: "cd",
+		},
+		err: nil,
+	},
+}
+
+func TestRouterActionParam(t *testing.T) {
+	for _, pl := range testParamLines {
+		r := &routerLine{
+			pathParams: []*param{
+				&param{name: "ab"},
+			},
+		}
+
+		if err := parseRouterActionParam(pl.paramLine, r); err != pl.err {
+			t.Errorf("Parse param err: %v, param line: %s", err, pl.paramLine)
+		} else {
+			if !reflect.DeepEqual(r.params[0], pl.param) {
+				t.Errorf("Parse line: %s, want: %v, got: %v", pl.paramLine, pl.param, r.params[0])
+			}
+		}
+	}
+}
