@@ -3,6 +3,7 @@ package router
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"regexp"
 )
@@ -144,30 +145,65 @@ func parseRouterActionParam(paramLine string, r *routerLine) error {
 	quoteIndex := strings.Index(paramLine, "\"")
 	equalIndex := strings.Index(paramLine, "=")
 
-	if equalIndex > 0 {
-		if quoteIndex > 0 {
+	if equalIndex >= 0 {
+		if quoteIndex >= 0 {
 			if quoteIndex > equalIndex {
 				paramName := strings.TrimSpace(paramLine[0:equalIndex])
 				paramValue := strings.TrimSpace(paramLine[equalIndex+1:])
+				paramValue = strings.Trim(paramValue, "\"")
 
+				pType := query_string_value_param_type
+				if r.findPathParamByName(paramName) {
+					pType = path_value_param_type
+				}
+
+				r.params = append(r.params, &param{pType: pType, name: paramName, defaultValue: paramValue})
 			} else {
-
+				if quoteIndex != 0 {
+					return fmt.Errorf("parse action param error: %s", paramLine)
+				} else {
+					value := strings.Trim(paramLine, "\"")
+					r.params = append(r.params, &param{pType: fixed_value_type, defaultValue: value})
+				}
 			}
 		} else {
+			paramName := strings.TrimSpace(paramLine[0:equalIndex])
+			paramValue := strings.TrimSpace(paramLine[equalIndex+1:])
 
+			pType := query_string_value_param_type
+			if r.findPathParamByName(paramName) {
+				pType = path_value_param_type
+			}
+
+			r.params = append(r.params, &param{pType: pType, name: paramName, defaultValue: paramValue})
 		}
 	} else {
+		value := strings.TrimSpace(paramLine)
+		value = strings.Trim(value, "\"")
 
+		if quoteIndex >= 0 ||
+			strings.EqualFold(value, "true") ||
+			strings.EqualFold(value, "false") ||
+			unicode.IsNumber(rune(value[0])) {
+			r.params = append(r.params, &param{pType: fixed_value_type, defaultValue: value})
+		} else {
+			pType := query_string_param_type
+			if r.findPathParamByName(value) {
+				pType = path_param_type
+			}
+
+			r.params = append(r.params, &param{pType: pType, name: value})
+		}
 	}
 	return nil
 }
 
-func (rl *routerLine) findPathParamByName(name string) *param {
+func (rl *routerLine) findPathParamByName(name string) bool {
 	for _, p := range rl.pathParams {
 		if p.name == name {
-			return p
+			return true
 		}
 	}
 
-	return nil
+	return false
 }

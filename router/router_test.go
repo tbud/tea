@@ -150,7 +150,7 @@ var testParamLines = []struct {
 		param: &param{
 			pType:        query_string_value_param_type,
 			name:         "cd",
-			defaultValue: "true",
+			defaultValue: "abc",
 		},
 		err: nil,
 	},
@@ -163,10 +163,10 @@ var testParamLines = []struct {
 		err: nil,
 	},
 	{
-		paramLine: `"cd"`,
+		paramLine: `"cd1"`,
 		param: &param{
 			pType:        fixed_value_type,
-			defaultValue: "cd",
+			defaultValue: "cd1",
 		},
 		err: nil,
 	},
