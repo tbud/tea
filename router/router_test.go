@@ -109,8 +109,11 @@ func TestParseRouteLine(t *testing.T) {
 		if rl, err := parseRouterLine(trl.line); err != nil {
 			t.Error(err)
 			return
-		} else if !reflect.DeepEqual(trl.r, rl) {
-			t.Errorf("Want %v, Got %v", trl.r, rl)
+		} else {
+			trl.r.pathParams = trl.r.pathParams[:0]
+			if !reflect.DeepEqual(trl.r, rl) {
+				t.Errorf("Want %v, Got %v", trl.r, rl)
+			}
 		}
 	}
 }
