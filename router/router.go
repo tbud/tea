@@ -30,14 +30,6 @@ func parseRouterLine(line string) (r *routerLine, err error) {
 		return nil, err
 	}
 
-	fmt.Printf("%v\n", r)
-	for _, p := range r.pathParams {
-		fmt.Printf("%v\n", p)
-	}
-	for _, p := range r.params {
-		fmt.Printf("%v\n", p)
-	}
-
 	return r, nil
 }
 

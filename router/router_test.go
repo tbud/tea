@@ -52,17 +52,17 @@ var testRouteLines = []struct {
 				},
 				&param{
 					pType:        query_string_value_param_type,
-					name:         "ef",
+					name:         "gg",
 					defaultValue: "true",
 				},
 			},
 		},
 	},
 	{
-		line: `Delete     /test/:ab                       Test.Special(ab, cd= " , ", ef=  true for special test  , gg)`,
+		line: `Delete     /test/:ab                       Test.Special(ab, cd   = " , ", ef=  true for special test  , gg)`,
 		r: &routerLine{
 			httpMethod: "DELETE",
-			path:       "/test/:ab/:cd",
+			path:       "/test/:ab",
 			structName: "Test",
 			methodName: "Special",
 			params: []*param{
@@ -71,7 +71,7 @@ var testRouteLines = []struct {
 					name:  "ab",
 				},
 				&param{
-					pType:        path_value_param_type,
+					pType:        query_string_value_param_type,
 					name:         "cd",
 					defaultValue: " , ",
 				},
@@ -82,7 +82,7 @@ var testRouteLines = []struct {
 				},
 				&param{
 					pType: query_string_param_type,
-					name:  "ef",
+					name:  "gg",
 				},
 			},
 		},
@@ -104,13 +104,21 @@ var testRouteLines = []struct {
 	},
 }
 
+// func (r *routerLine) String() string {
+// 	return fmt.Sprintf("%v\n", r.params)
+// }
+
+// func (p *param) String() string {
+// 	return fmt.Sprintf("(%s, %s, %d, %v)", p.defaultValue, p.name, p.pType, p.typeExpr)
+// }
+
 func TestParseRouteLine(t *testing.T) {
 	for _, trl := range testRouteLines {
 		if rl, err := parseRouterLine(trl.line); err != nil {
 			t.Error(err)
 			return
 		} else {
-			trl.r.pathParams = trl.r.pathParams[:0]
+			rl.pathParams = nil
 			if !reflect.DeepEqual(trl.r, rl) {
 				t.Errorf("Want %v, Got %v", trl.r, rl)
 			}
