@@ -42,6 +42,7 @@ type routeScanner struct {
 	imports     map[string]*set.StringSet
 	controllers map[string][]controller
 	routers     []router
+	routerLines []*routerLine
 }
 
 func includeRoute(rootPath string, importAppPath string) (routers []router, err error) {
@@ -289,8 +290,16 @@ func parseInclude(r *routeScanner, c int) int {
 }
 
 func parseRoute(r *routeScanner) {
-	// routePath := string(bytes.TrimSpace(r.parseBuf))
+	routePath := string(bytes.TrimSpace(r.parseBuf))
 	// r.routes = append(r.routes, routePath)
+	rl, err := parseRouterLine(routePath)
+	if err != nil {
+		r.err = err
+		r.step = stateError
+		return
+	}
+
+	r.routerLines = append(r.routerLines, rl)
 }
 
 /************** keyword scanner *****************/
